@@ -16,8 +16,15 @@ import time
 import urllib.request
 import urllib.error
 
-# Ensure repository root is on sys.path regardless of execution working directory
-ROOT_DIR = Path(__file__).resolve().parent.parent
+# Ensure repository root containing 'edge' is on sys.path regardless of execution working directory
+_current = Path(__file__).resolve().parent
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+while _current.parent != _current:
+    if (_current / "edge" / "slm").is_dir():
+        ROOT_DIR = _current
+        break
+    _current = _current.parent
+
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
@@ -179,8 +186,7 @@ def run_benchmark(model_name: str = "qwen2.5:1.5b", trials: int = 3, ollama_url:
     print("=" * 75)
 
     # Save to Markdown
-    results_dir = Path("benchmarks")
-    results_dir.mkdir(exist_ok=True)
+    results_dir = Path(__file__).resolve().parent
     report_path = results_dir / "e1_results.md"
 
     md_content = f"""# Nimbus Experiment E1 Benchmark Results

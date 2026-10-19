@@ -11,8 +11,19 @@ Demonstrates:
 
 from datetime import datetime, timedelta, timezone
 import json
+from pathlib import Path
 import sqlite3
+import sys
 import time
+
+# Ensure repository root containing 'edge' is on sys.path
+_current = Path(__file__).resolve().parent
+while _current.parent != _current:
+    if (_current / "edge" / "supervisor").is_dir():
+        if str(_current) not in sys.path:
+            sys.path.insert(0, str(_current))
+        break
+    _current = _current.parent
 
 from edge.supervisor.supervisor import EdgeSupervisor
 from edge.slm.engine import EdgeSLMEngine
@@ -38,9 +49,10 @@ def run_demo():
     now = datetime.now(timezone.utc)
     deadline = now + timedelta(minutes=10)
     expiry = now + timedelta(minutes=12)
+    demo_ts = int(time.time())
 
     lease_t1 = {
-        "lease_id": "lease-task-000001-v1",
+        "lease_id": f"lease-t1-{demo_ts}",
         "version": 1,
         "priority": "routine",
         "deadline_ts": deadline.strftime("%Y-%m-%dT%H:%M:%SZ"),

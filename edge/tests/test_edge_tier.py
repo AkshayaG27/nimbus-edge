@@ -4,7 +4,19 @@ Validates FR-3, FR-5, FR-6, FR-8, FR-9, FR-10, NFR-6.
 """
 
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+import sys
 import pytest
+
+# Ensure repository root containing 'edge' is on sys.path
+_current = Path(__file__).resolve().parent
+while _current.parent != _current:
+    if (_current / "edge" / "supervisor").is_dir():
+        if str(_current) not in sys.path:
+            sys.path.insert(0, str(_current))
+        break
+    _current = _current.parent
+
 from edge.schemas.validator import validate_lease, validate_escalation
 from edge.supervisor.supervisor import EdgeSupervisor
 
