@@ -103,14 +103,20 @@ class EdgeSLMEngine:
                     data=req_data,
                     headers={"Content-Type": "application/json"}
                 )
-                with urllib.request.urlopen(req, timeout=10.0) as resp:
+                with urllib.request.urlopen(req, timeout=30.0) as resp:
                     resp_json = json.loads(resp.read().decode("utf-8"))
                     text = resp_json.get("response", "").strip()
+                    # Strip markdown code blocks if model wrapped JSON
+                    if text.startswith("```"):
+                        text = text.split("```")[1]
+                        if text.startswith("json"):
+                            text = text[4:]
+                        text = text.strip()
                     parsed = json.loads(text)
                     latency_ms = (time.time() - start_time) * 1000.0
                     return parsed, "SLM", latency_ms
-            except Exception:
-                # Malformed output, timeout or connection drop -> fallback to rule engine
+            except Exception as e:
+                # Fallback to rule engine on timeout or malformed output
                 pass
 
         if self.mode == "llama_cpp" and self.llm is not None:

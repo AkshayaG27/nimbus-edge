@@ -121,12 +121,18 @@ def run_benchmark(model_name: str = "qwen2.5:1.5b", trials: int = 3, ollama_url:
     engine = EdgeSLMEngine(model_name=model_name, mode="auto")
     print(f"  SLM Engine Initialized in Mode: {engine.mode}")
 
+    # Standard GPU warm-up pass (allocates CUDA buffers, not counted in benchmark stats)
+    print("  Warming up GPU / model...")
+    warmup_ctx = dict(BENCHMARK_PROMPTS[0]["context"])
+    _, warmup_by, warmup_ms = engine.evaluate_decision(warmup_ctx)
+    print(f"  Warm-up completed in {warmup_ms:.1f} ms (Decided by: {warmup_by})\n")
+
     latencies = []
     valid_json_count = 0
     total_calls = 0
     records = []
 
-    print("\nRunning benchmark trials...")
+    print("Running benchmark trials...")
     for trial in range(1, trials + 1):
         for scenario in BENCHMARK_PROMPTS:
             total_calls += 1
