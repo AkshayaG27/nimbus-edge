@@ -11,9 +11,15 @@ import os
 from pathlib import Path
 import platform
 import statistics
+import sys
 import time
 import urllib.request
 import urllib.error
+
+# Ensure repository root is on sys.path regardless of execution working directory
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 # Benchmark test scenarios representing hospital dynamic edge events
 BENCHMARK_PROMPTS = [
