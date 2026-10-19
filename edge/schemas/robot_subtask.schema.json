@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nimbus.ds252.local/schemas/robot_subtask.schema.json",
+  "title": "Nimbus robot sub-task",
+  "description": "One command the edge issues to a single robot. The command set is fixed by PRD v5.0 Sec. 6 (go_to, wait, stop, photo, beep, report); the edge model splits each lease into these sub-tasks (FR-3). cmd is the only required field; robot names the target robot when the sub-task is not fleet-wide, and params carries its arguments (e.g. destination zone for go_to, seconds for wait).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["cmd"],
+  "properties": {
+    "cmd": {
+      "enum": ["go_to", "wait", "stop", "photo", "beep", "report"],
+      "description": "Fixed robot command set (PRD v5.0 Sec. 6)."
+    },
+    "robot": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of the robot that executes the sub-task."
+    },
+    "params": {
+      "type": "object",
+      "description": "Command arguments, owned by the cmd (destination, duration, etc.)."
+    }
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nimbus.ds252.local/schemas/lease.schema.json",
+  "title": "Nimbus authority lease",
+  "description": "Wire contract for the authority lease the cloud issues to exactly one edge cluster. The required field set is fixed by Nimbus PRD v5.0 Sec. 6 and the Person 4 scope: {lease_id, version, priority, deadline_ts, expiry_ts, allowed_zones, forbidden_zones, speed_limit, assigned_robots, task_sequence, cluster_id, when_to_escalate}. task_sequence items are robot sub-tasks (see robot_subtask.schema.json). Only the highest version is ever honoured (FR-8). The cross-field rule deadline_ts <= expiry_ts is enforced in the validation module, not here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "lease_id",
+    "version",
+    "priority",
+    "deadline_ts",
+    "expiry_ts",
+    "allowed_zones",
+    "forbidden_zones",
+    "speed_limit",
+    "assigned_robots",
+    "task_sequence",
+    "cluster_id",
+    "when_to_escalate"
+  ],
+  "properties": {
+    "lease_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier of this lease instance."
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic lease version; a new version from the cloud replaces the old one outright (FR-5, FR-8)."
+    },
+    "priority": {
+      "enum": ["routine", "urgent"],
+      "description": "Urgency class; urgent work goes first (FR-14)."
+    },
+    "deadline_ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Time by which the task should complete (SC-1 uses 12 minutes)."
+    },
+    "expiry_ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Time after which the cluster finishes the current step and parks its robots; no new work may start past it."
+    },
+    "allowed_zones": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Zones the robots may enter; nothing outside them may be attempted (FR-5)."
+    },
+    "forbidden_zones": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Zones the robots must never enter, even if reachable."
+    },
+    "speed_limit": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Maximum robot speed in m/s while the lease is held."
+    },
+    "assigned_robots": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Robots placed under this lease."
+    },
+    "task_sequence": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "robot_subtask.schema.json" },
+      "description": "Ordered robot sub-tasks the edge splits and monitors (FR-3)."
+    },
+    "cluster_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The single edge cluster holding this lease (SC-1: the East-wing cluster)."
+    },
+    "when_to_escalate": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Named conditions under which the edge must ask the cloud instead of deciding alone (FR-4)."
+    }
+  }
+}

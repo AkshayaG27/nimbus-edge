@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nimbus.ds252.local/schemas/escalation.schema.json",
+  "title": "Nimbus escalation",
+  "description": "Wire contract for the three edge-to-cloud escalation types fixed by PRD v5.0 FR-9 and Table 2. Every escalation carries a message_id (FR-8: repeats are dropped) and the lease_version it was produced under; the cloud drops escalations whose lease_version is outdated. The payload keys per type follow Table 2's Contains column: CLARIFY carries the question and possible readings, UNEXPECTED_EVENT carries what happened, where, and what robots saw, OUTPUT_READY carries where the result is stored.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["type", "message_id", "lease_version", "task_id", "payload"],
+  "properties": {
+    "type": {
+      "enum": ["CLARIFY", "UNEXPECTED_EVENT", "OUTPUT_READY"],
+      "description": "The three escalation types (FR-9); no other edge-to-cloud traffic exists apart from leases and check-ins."
+    },
+    "message_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique per message; a repeated message_id is dropped rather than acted on twice (FR-8)."
+    },
+    "lease_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Lease version the escalation was produced under; outdated versions are dropped."
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Task the escalation belongs to."
+    },
+    "payload": {
+      "type": "object",
+      "description": "Type-specific contents, required keys fixed per type below (PRD Table 2)."
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "type": { "const": "CLARIFY" } }, "required": ["type"] },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["question", "possible_readings"],
+            "properties": {
+              "question": { "type": "string", "minLength": 1 },
+              "possible_readings": {
+                "array": true,
+                "minItems": 1,
+                "items": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "UNEXPECTED_EVENT" } }, "required": ["type"] },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["what_happened", "where", "robots_saw"],
+            "properties": {
+              "what_happened": { "type": "string", "minLength": 1 },
+              "where": { "type": "string", "minLength": 1 },
+              "robots_saw": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "OUTPUT_READY" } }, "required": ["type"] },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["result_ref"],
+            "properties": {
+              "result_ref": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Where the result is stored (cloud storage URI); results cross the WAN only inside OUTPUT_READY, never as a raw stream."
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

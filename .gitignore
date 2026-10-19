@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite databases & runtime storage
+*.db
+*.sqlite3
+edge_local_store.db
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Pytest & testing cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local logs & OS files
+*.log
+.DS_Store
+Thumbs.db
+
+# Backup folders
+Before_confirmation_files/
