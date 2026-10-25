@@ -2,10 +2,10 @@
   "task_id": "lease-task-t1-001",
   "lease_version": 1,
   "robot_id": "R1",
-  "execution_duration_sec": 0.164,
+  "execution_duration_sec": 0.167,
   "distance_travelled_m": 14.56,
   "subtasks_completed": 5,
   "battery_consumed_pct": 0.0,
   "tactical_events_count": 0,
-  "timestamp": 1792696748.839656
+  "timestamp": 1792905544.558342
 }
