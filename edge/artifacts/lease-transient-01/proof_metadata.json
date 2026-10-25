@@ -1,0 +1,13 @@
+{
+  "task_id": "lease-transient-01",
+  "robot_id": "R1",
+  "pose": [
+    14.0,
+    4.0,
+    0.0
+  ],
+  "resolution": "1280x720",
+  "file_size_bytes": 1038,
+  "sha256": "7e7bb01e57aa1690105648b5e6b7b0105024543212ed88b8487ad801fa1e822b",
+  "created_at": "2026-10-22T19:20:01.146231+00:00"
+}

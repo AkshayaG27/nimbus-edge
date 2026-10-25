@@ -1,0 +1,11 @@
+{
+  "task_id": "lease-dedup-01",
+  "lease_version": 2,
+  "robot_id": "R1",
+  "execution_duration_sec": 0.159,
+  "distance_travelled_m": 14.56,
+  "subtasks_completed": 5,
+  "battery_consumed_pct": 0.0,
+  "tactical_events_count": 0,
+  "timestamp": 1792696757.3700583
+}

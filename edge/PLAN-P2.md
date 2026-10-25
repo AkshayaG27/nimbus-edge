@@ -45,14 +45,17 @@
 ---
 
 ### Phase 2: Edge Autonomy & Robustness (Target: Nov 1)
-- [ ] **Task 2.1: Lease Boundary & Safe Parking Enforcement (FR-5, FR-6)**
-  - Spatial geofence validator: check all waypoints against `allowed_zones` and `forbidden_zones`.
-  - Expiry interrupt: when `valid_until` expires, immediately cancel current errand and dispatch command to nearest `safe_parking_spots`.
-  - Guarantee robot never stalls in doorways, corridors, or elevator entrances.
-- [ ] **Task 2.2: Local Tactical Autonomy & Edge SLM Invocation (FR-3, FR-4)**
-  - Connect Edge Supervisor to pinned local SLM via `llama.cpp` inference API.
-  - Implement tactical decision actions: `LOCAL_WAIT` (transient obstacle), `LOCAL_DETOUR` (alternate route within allowed zones), and `SWAP_ROBOT`.
-  - Implement deterministic rule-based fallback if SLM generation times out ($>8$ s) or produces invalid output.
+- [x] **Task 2.1: Lease Boundary & Safe Parking Enforcement (FR-5, FR-6)**
+  - Spatial geofence validator (dge/supervisor/geofence.py): checks all destinations, waypoints, and [x, y] coordinates against llowed_zones and orbidden_zones. Rejects boundary violations with FAILED_BOUNDARY, logs audit records, and escalates UNEXPECTED_EVENT.
+  - Safe parking engine (dge/supervisor/parking.py): guarantees robots never stall in doorways, fire exits, active corridors, or elevator vestibules (Invariant 4). Dynamically selects nearest safe parking recess outside forbidden zones.
+  - Expiry watchdog & in-flight interrupt (	rigger_expiry_interrupt in dge/supervisor/supervisor.py): cancels in-flight errand commands in SQLite, dispatches reflex stop, parks robot in nearest safe bay, logs SAFE_PARK rule decision, and escalates to Cloud.
+  - Comprehensive unit test suite in dge/tests/test_boundary_and_parking.py (100% passing across 14 tests).
+- [x] **Task 2.2: Local Tactical Autonomy & Edge SLM Invocation (FR-3, FR-4)**
+  - Upgraded Edge SLM engine (dge/slm/engine.py) with strict 8.0-second timeout enforcement (NFR-1), Ollama/llama.cpp/mock modes, and deterministic rule-based safety fallback.
+  - Implemented full tactical action vocabulary: LOCAL_WAIT (transient obstacle retry), LOCAL_DETOUR (alternate bypass via corridor-2B-north within allowed zones), SWAP_ROBOT (failover to idle cluster robot on fault), ESCALATE_CLARIFY, and ESCALATE_UNEXPECTED.
+  - Integrated tactical autonomy loop in EdgeSupervisor.process_lease (dge/supervisor/supervisor.py) with automatic spatial geofence validation on all SLM-suggested detours.
+  - Enriched MockRobot (dge/mock/mock_robot.py) with dynamic corridor transit detection and obstacle/fault injection.
+  - Comprehensive test suite in dge/tests/test_tactical_autonomy.py (100% passing across 20 tests total in suite).
 - [ ] **Task 2.3: Escalation Pipeline (`CLARIFY` & `UNEXPECTED_EVENT`) (FR-9)**
   - Trigger `CLARIFY` when destination or item instructions are ambiguous.
   - Trigger `UNEXPECTED_EVENT` when corridor is blocked and no detour exists within leased zones.

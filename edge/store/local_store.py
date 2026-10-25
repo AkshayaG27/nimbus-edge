@@ -5,9 +5,9 @@ decision logs, and outbox escalations (FR-6, FR-8, FR-10, NFR-6).
 """
 
 import json
+from pathlib import Path
 import sqlite3
 import time
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 
@@ -153,9 +153,6 @@ class EdgeLocalStore:
                 )
 
             expires_at = lease_data.get("expiry_ts") or lease_data.get("valid_until")
-            if isinstance(expires_at, str):
-                # ISO 8601 string -> store as string or float
-                pass
 
             cursor.execute("""
                 INSERT INTO leases (lease_id, version, cluster_id, task_id, status, valid_until, lease_json, received_at)
@@ -164,7 +161,7 @@ class EdgeLocalStore:
                 lease_id,
                 version,
                 lease_data.get("cluster_id", "unknown"),
-                lease_data.get("task_id", "unknown"),
+                lease_data.get("task_id") or lease_id,
                 str(expires_at),
                 json.dumps(lease_data),
                 now
@@ -200,7 +197,7 @@ class EdgeLocalStore:
             return None
 
     def update_lease_status(self, lease_id: str, version: int, status: str):
-        """Updates lease status (e.g. COMPLETED, EXPIRED, CANCELLED)."""
+        """Updates lease status (e.g. COMPLETED, EXPIRED, CANCELLED, EXPIRED_PARKED)."""
         with self._get_conn() as conn:
             cursor = conn.cursor()
             cursor.execute("""
@@ -227,7 +224,7 @@ class EdgeLocalStore:
             conn.commit()
 
     def update_robot_command_status(self, cmd_id: str, status: str):
-        """Updates command status (DISPATCHED, COMPLETED, FAILED)."""
+        """Updates command status (DISPATCHED, COMPLETED, FAILED, CANCELLED)."""
         now = time.time()
         with self._get_conn() as conn:
             cursor = conn.cursor()
@@ -241,6 +238,39 @@ class EdgeLocalStore:
                 cursor.execute("UPDATE robot_commands SET status = ? WHERE cmd_id = ?",
                                (status, cmd_id))
             conn.commit()
+
+    def cancel_active_commands(self, lease_id: str) -> int:
+        """Cancels all PENDING or DISPATCHED commands for a given lease (FR-6)."""
+        now = time.time()
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE robot_commands SET status = 'CANCELLED', completed_at = ? WHERE lease_id = ? AND status IN ('PENDING', 'DISPATCHED')",
+                (now, lease_id)
+            )
+            count = cursor.rowcount
+            conn.commit()
+            return count
+
+    def get_robot_commands(self, lease_id: str) -> List[Dict[str, Any]]:
+        """Retrieves all commands recorded for a lease."""
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM robot_commands WHERE lease_id = ? ORDER BY created_at ASC", (lease_id,))
+            rows = cursor.fetchall()
+            return [
+                {
+                    "cmd_id": r["cmd_id"],
+                    "lease_id": r["lease_id"],
+                    "robot_id": r["robot_id"],
+                    "action": r["action"],
+                    "params": json.loads(r["params_json"]),
+                    "status": r["status"],
+                    "created_at": r["created_at"],
+                    "completed_at": r["completed_at"]
+                }
+                for r in rows
+            ]
 
     def log_decision(
         self,
@@ -256,7 +286,7 @@ class EdgeLocalStore:
         with self._get_conn() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO decision_log
+                INSERT OR REPLACE INTO decision_log
                 (decision_id, lease_id, decided_by, input_context, decision_action, decision_output, latency_ms, timestamp)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (

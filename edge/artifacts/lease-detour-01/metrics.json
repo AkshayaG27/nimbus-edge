@@ -1,0 +1,11 @@
+{
+  "task_id": "lease-detour-01",
+  "lease_version": 1,
+  "robot_id": "R1",
+  "execution_duration_sec": 0.124,
+  "distance_travelled_m": 14.67,
+  "subtasks_completed": 4,
+  "battery_consumed_pct": 0.0,
+  "tactical_events_count": 1,
+  "timestamp": 1792696805.419862
+}

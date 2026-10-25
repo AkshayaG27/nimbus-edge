@@ -1,0 +1,13 @@
+{
+  "task_id": "lease-swap-01",
+  "robot_id": "R2",
+  "pose": [
+    14.0,
+    4.0,
+    0.0
+  ],
+  "resolution": "1280x720",
+  "file_size_bytes": 1033,
+  "sha256": "5ccf41d1d24becad82a9c42a06777143b8c03a5abe0b69592e871f2d48e0c946",
+  "created_at": "2026-10-22T19:20:13.876003+00:00"
+}
