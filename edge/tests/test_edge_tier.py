@@ -132,3 +132,26 @@ def test_expiry_watchdog_safe_parking(tmp_path):
     assert "parked in safe spot" in res["reason"]
     assert res["parking"]["action"] == "go_to"
     assert res["parking"]["params"]["to"] == "safe-parking-bay-1"
+
+
+def test_heartbeat_and_checkin_resilience(tmp_path):
+    """Verifies that idle heartbeats and active check-ins handle offline networks gracefully."""
+    db_file = str(tmp_path / "test_edge.db")
+    # Cloud points to unreachable port to test offline resilience
+    supervisor = EdgeSupervisor(cluster_id="east-wing", cloud_url="http://127.0.0.1:59999", db_path=db_file, slm_mode="mock")
+
+    # 1. Idle heartbeat offline
+    ok, hb_data = supervisor.send_heartbeat_to_cloud()
+    assert not ok
+    assert hb_data == {}
+
+    # 2. Check-in with no lease
+    ok, status, data = supervisor.send_checkin_to_cloud()
+    assert not ok
+    assert status == "no_active_lease"
+
+    # 3. Check-in with active lease offline -> returns offline without crashing
+    lease = _make_sample_lease(lease_id="lease-task-test1-v1")
+    ok, status, data = supervisor.send_checkin_to_cloud(lease)
+    assert not ok
+    assert status == "offline"

@@ -1,7 +1,8 @@
 """
 Nimbus Edge Supervisor Runner (Person 2)
 Runs a continuous Edge Supervisor daemon for a specific cluster (e.g. east-wing or west-wing).
-Polls cloud outbox for leases, executes sub-tasks locally, and sends OUTPUT_READY escalations.
+Sends periodic idle heartbeats (POST /fleet/heartbeat), active lease check-ins (POST /checkins),
+polls cloud outbox for leases, executes sub-tasks locally, and sends OUTPUT_READY escalations.
 
 Usage:
     python edge/run_supervisor.py --cluster east-wing
@@ -31,6 +32,7 @@ def main():
     parser.add_argument("--cloud-url", default="http://127.0.0.1:8000", help="Cloud API endpoint URL")
     parser.add_argument("--db", default=None, help="Path to local SQLite DB (defaults to edge_<cluster>.db)")
     parser.add_argument("--interval", type=float, default=2.0, help="Outbox polling interval in seconds")
+    parser.add_argument("--heartbeat-interval", type=float, default=15.0, help="Idle heartbeat interval in seconds")
     parser.add_argument("--once", action="store_true", help="Poll once and exit")
     args = parser.parse_args()
 
@@ -43,6 +45,7 @@ def main():
     print(f"  Cloud Endpoint  : {args.cloud_url}")
     print(f"  Local SQLite DB : {db_path}")
     print(f"  Polling Interval: {args.interval}s")
+    print(f"  Heartbeat Rate  : every {args.heartbeat_interval}s while idle")
     print("  Status          : Active & Listening for Leases...\n")
 
     supervisor = EdgeSupervisor(
@@ -53,6 +56,7 @@ def main():
     )
 
     processed_leases = set()
+    last_heartbeat_time = 0.0
 
     try:
         while True:
@@ -61,7 +65,17 @@ def main():
             if flushed > 0:
                 print(f"[{args.cluster}] Uploaded {flushed} pending escalation(s) to cloud.")
 
-            # 2. Fetch new leases from cloud outbox
+            now_time = time.time()
+
+            # 2. While idle, send periodic heartbeat to POST /fleet/heartbeat (Item 2)
+            if supervisor.active_lease is None:
+                if now_time - last_heartbeat_time >= args.heartbeat_interval:
+                    ok, hb_data = supervisor.send_heartbeat_to_cloud()
+                    if ok:
+                        print(f"[{args.cluster}] Heartbeat sent -> cluster health: {hb_data.get('health')}")
+                    last_heartbeat_time = now_time
+
+            # 3. Fetch new leases from cloud outbox
             leases = supervisor.fetch_leases_from_cloud()
             for lease in leases:
                 lid = lease.get("lease_id")
@@ -84,6 +98,7 @@ def main():
                 elif status == "REJECTED":
                     print(f"[{args.cluster}] Reason      : {result.get('reason')}")
                 processed_leases.add(key)
+                last_heartbeat_time = time.time()
 
             if args.once:
                 break
